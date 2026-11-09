@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -77,7 +77,7 @@ namespace SimpleUnlockerRemastered
 
             AddInfoTab("Обзор", "SimpleUnlocker Remastered 5.4 LIVE\n\nДиагностика Windows и инструменты восстановления.\nПроцессы, автозагрузка и Winlogon отслеживаются в реальном времени.\nПо умолчанию проверки только читают данные.\nОперации изменения системы требуют подтверждения и запуска от администратора.");
             AddProcesses(); AddStartup(); AddServices(); AddTasks(); AddRestrictions(); AddWinlogon();
-            AddDrivers(); AddSystemInfo(); AddDisk(); AddNetwork(); AddSecurity(); AddRepair(); AddRestorePoint(); AddRegistryBackup(); AddEventLog(); AddDebugger(); AddExplorer(); AddLanguages();
+            AddDrivers(); AddSystemInfo(); AddDisk(); AddNetwork(); AddSecurity(); AddRepair(); AddRestorePoint(); AddRegistryBackup(); AddEventLog(); AddDebugger(); AddExplorer();
             var logTab = new TabPage("Журнал"); logBox = new TextBox { Multiline=true, ReadOnly=true, Dock=DockStyle.Fill, ScrollBars=ScrollBars.Both, Font=new Font("Consolas",9) }; logTab.Controls.Add(logBox); tabs.TabPages.Add(logTab);
             ApplyTheme();
             Log("Программа запущена. Администратор: " + IsAdmin);
@@ -773,81 +773,6 @@ namespace SimpleUnlockerRemastered
             if (int.TryParse(value, out int n)) return n != 0;
             return name.Equals("DisallowRun", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("RestrictRun", StringComparison.OrdinalIgnoreCase);
-        }
-
-        // ================= LANGUAGE RECOVERY =================
-        void AddLanguages()
-        {
-            var p = NewTab("Языки");
-            var panel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(24), AutoScroll = true };
-            p.Controls.Add(panel);
-
-            var heading = new Label
-            {
-                Text = "Восстановление языков Windows",
-                AutoSize = true, Left = 24, Top = 24,
-                Font = new Font("Segoe UI Semibold", 18f)
-            };
-            var description = new Label
-            {
-                Text = "Если вредоносная программа изменила языковые предпочтения, выберите исходный язык.\r\n"
-                     + "Будут восстановлены русский и английский для текущей учётной записи Windows.",
-                Left = 26, Top = 68, Width = 760, Height = 58,
-                Font = new Font("Segoe UI", 10f)
-            };
-            var note = new Label
-            {
-                Text = "Важно: операция заменит список языков текущего пользователя на RU + EN и назначит выбранный язык основным. "
-                     + "Языковые пакеты интерфейса Windows должны быть установлены отдельно; может потребоваться выход из системы.",
-                Left = 26, Top = 140, Width = 780, Height = 72,
-                Font = new Font("Segoe UI", 9f)
-            };
-            var ru = new Button { Text = "Восстановить: Русский", Left = 26, Top = 232, Width = 230, Height = 48 };
-            var en = new Button { Text = "Restore: English", Left = 270, Top = 232, Width = 210, Height = 48 };
-            var status = new Label
-            {
-                Text = "Ничего не изменено. Сначала можно проверить языки в Параметры → Время и язык → Язык и регион.",
-                Left = 26, Top = 300, Width = 780, Height = 52, AutoSize = false
-            };
-            ru.Click += (sender, e) => RestoreUserLanguages("ru-RU", "0419:00000419", status);
-            en.Click += (sender, e) => RestoreUserLanguages("en-US", "0409:00000409", status);
-            panel.Controls.AddRange(new Control[] { heading, description, note, ru, en, status });
-        }
-
-        void RestoreUserLanguages(string primary, string inputTip, Label status)
-        {
-            string languageName = primary == "ru-RU" ? "русский" : "английский";
-            string message = "Восстановить русский и английский языки для текущего пользователя Windows?\r\n\r\n"
-                + "Основной язык: " + languageName + ".\r\n"
-                + "Текущий список языков будет заменён на RU + EN. Продолжить?";
-            if (!Confirm(message)) return;
-
-            // EncodedCommand avoids quoting/encoding problems for localized PowerShell scripts.
-            string script =
-                "$ErrorActionPreference = 'Stop'; " +
-                "$langs = New-WinUserLanguageList '" + primary + "'; " +
-                "$secondary = if ('" + primary + "' -eq 'ru-RU') { 'en-US' } else { 'ru-RU' }; " +
-                "$langs.Add($secondary); " +
-                "Set-WinUserLanguageList -LanguageList $langs -Force; " +
-                "Set-WinUILanguageOverride -Language '" + primary + "'; " +
-                "Set-Culture -CultureInfo '" + primary + "'; " +
-                "Set-WinDefaultInputMethodOverride -InputTip '" + inputTip + "'; " +
-                "Write-Output 'Language preferences updated. Sign out and sign in if needed.'";
-            string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
-            try
-            {
-                Run("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " + encoded);
-                status.Text = "Команда восстановления запущена. Проверьте результат в PowerShell; для применения может понадобиться выход из учётной записи.";
-                Log("Запущено восстановление языков: " + primary + " + " + (primary == "ru-RU" ? "en-US" : "ru-RU"));
-                MessageBox.Show("Запущена настройка языков RU + EN. Если языковой пакет отсутствует, установите его в Параметры Windows → Время и язык → Язык и регион. Для применения изменений может понадобиться выйти из системы.",
-                    "Восстановление языков", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                status.Text = "Не удалось запустить восстановление: " + ex.Message;
-                Log("Ошибка восстановления языков: " + ex.Message);
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
         }
 
         // ================= FILE EXPLORER =================
